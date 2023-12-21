@@ -283,7 +283,7 @@ async def test_perform_refresh_expiration(
     credentials expiration should be used.
     """
     # set credentials expiration to 1 minute from now
-    expiration = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
+    expiration = datetime.datetime.now(timezone.utc) + datetime.timedelta(minutes=1)
     setattr(instance, "_enable_iam_auth", True)
     # set downscoped credential to mock
     with patch(

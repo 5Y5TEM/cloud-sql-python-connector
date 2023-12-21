@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
-import datetime
+from datetime import datetime, timezone
 import logging
 from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 
@@ -211,11 +211,11 @@ async def _get_ephemeral(
 
     # decode cert to read expiration
     x509 = load_pem_x509_certificate(ephemeral_cert.encode("UTF-8"), default_backend())
-    expiration = x509.not_valid_after
+    expiration = x509.not_valid_after.replace(tzinfo=timezone.utc)
     # for IAM authentication OAuth2 token is embedded in cert so it
     # must still be valid for successful connection
     if enable_iam_auth:
-        token_expiration: datetime.datetime = login_creds.expiry
+        token_expiration: datetime = login_creds.expiry
         if expiration > token_expiration:
             expiration = token_expiration
     return ephemeral_cert, expiration
@@ -234,7 +234,7 @@ def _seconds_until_refresh(
     :returns: Time in seconds to wait before performing next refresh.
     """
 
-    duration = int((expiration - datetime.datetime.utcnow()).total_seconds())
+    duration = int((expiration - datetime.now(timezone.utc)).total_seconds())
 
     # if certificate duration is less than 1 hour
     if duration < 3600:
@@ -251,7 +251,7 @@ async def _is_valid(task: asyncio.Task) -> bool:
     try:
         metadata = await task
         # only valid if now is before the cert expires
-        if datetime.datetime.utcnow() < metadata.expiration:
+        if datetime.now(timezone.utc) < metadata.expiration:
             return True
     except Exception:
         # supress any errors from task
